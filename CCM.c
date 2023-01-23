@@ -56,13 +56,13 @@ void bsp_init()
     - To receive debug messages
     - To send AT commands to CCM module
  * While porting to any other microcontroller,
- * replace UART initialization API's with your microcontroller specific UART API's.
+ * replace UART initialization API's with your microcontroller specific UART API's
  *******************************************************************************/
 void uart_init()
 {
 
     /*Initialize UART to communicate with CCM via pins P12_0 and P12_1 */
-    cyhal_uart_init(&uart_obj, P12_1, P12_0, NULL, &uart_config);
+    cyhal_uart_init(&uart_obj, P12_1, P12_0, NC, NC, NULL, &uart_config);
     cyhal_uart_set_baud(&uart_obj, BAUD_RATE, &actualbaud);
 
     /*Initialize Debug UART */
@@ -83,7 +83,7 @@ void uart_init()
  * Sending AT Commands to CCM module via UART interface.
  *
  * while porting to any other microcontroller,
- * replace the cyhal_uart_write() API with your microcontroller specific UART API.
+ * replace the cyhal_uart_write() API with your microcontroller specific UART API
  *
  * parameter: str
  * Address of AT Command in string format
@@ -106,7 +106,7 @@ void at_command_send(char *str)
  * Receive AT Command response from CCM module via UART interface.
  *
  * While porting to any other microcontroller,
- * replace the cyhal_uart_getc() API with your microcontroller specific UART API.
+ * replace the cyhal_uart_getc() API with your microcontroller specific UART API
  *
  * parameter: uint32_t delay
  * The amount of time(ms) the receive UART function should wait if there is no response
@@ -150,7 +150,7 @@ char *at_command_response_receive(uint32_t delay)
  * Function Name: handle_error
  ********************************************************************************
  * Summary:
- * User defined error handling function.
+ * User defined error handling function
  *
  *******************************************************************************/
 void handle_error(void)
@@ -165,10 +165,10 @@ void handle_error(void)
  * Function Name: Is_WiFi_Connected
  ********************************************************************************
  * Summary:
- * Check if CCM module is connected to Wi-Fi network.
+ * Check if CCM module is connected to Wi-Fi network
  *
  * While porting to any other microcontroller,
- * replace the cyhal_uart_getc() and cyhal_uart_write() API with your microcontroller specific UART API's.
+ * replace the cyhal_uart_getc() and cyhal_uart_write() API with your microcontroller specific UART API's
  *
  * return : uint8_t
  *          1 if connected to Wi-Fi network,
@@ -204,7 +204,7 @@ uint8_t is_wifi_connected()
  * Check if CCM module is connected to AWS IoT core.
  *
  * While porting to any other microcontroller,
- * replace the cyhal_uart_getc() and cyhal_uart_write() API with your microcontroller specific UART API's.
+ * replace the cyhal_uart_getc() and cyhal_uart_write() API with your microcontroller specific UART API's
  *
  * return : uint8_t
  *          1 if connected to AWS IoT core,

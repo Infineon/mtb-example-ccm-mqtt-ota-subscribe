@@ -36,15 +36,18 @@
 #define SUCCESS 1
 #define FAILURE 0
 
+/* CCM evaluation kits event pin is connected to P5_5*/
+#define EVENT_PIN P5_5
+
 /* Set SSID, Passphrase and Endpoint as follows
  * AT+CONF SSID=XXXX\n; where XXXX is the required SSID
  * AT+CONF Passphrase=YYYY\n ; YYYY is the Passphrase
  * AT+CONF EndPoint=ZZZZ\n; ZZZZ is the endpoint
  */
 
-#define SET_SSID "AT+CONF SSID=muthu12345\n"
-#define SET_PASSPHRASE "AT+CONF Passphrase=muthu12345\n"
-#define SET_ENDPOINT "AT+CONF Endpoint=a3us3dm4hskeep-ats.iot.ap-south-1.amazonaws.com\n"
+#define SET_SSID "AT+CONF SSID=\n"
+#define SET_PASSPHRASE "AT+CONF Passphrase=\n"
+#define SET_ENDPOINT "AT+CONF Endpoint=\n"
 
 /*******************************************************************************
  * Global Variables
@@ -77,16 +80,20 @@ static void empty_event_queue(void);
 int main()
 {
 
+    cyhal_gpio_callback_data_t gpio_event_callback = {
+        .callback = gpio_interrupt_handler,
+        .callback_arg = NULL};
+
     bsp_init();
 
     uart_init();
 
-    cyhal_gpio_init(P5_5, CYHAL_GPIO_DIR_INPUT,
+    cyhal_gpio_init(EVENT_PIN, CYHAL_GPIO_DIR_INPUT,
                     CYHAL_GPIO_DRIVE_NONE, CYBSP_LED_STATE_OFF);
 
-    cyhal_gpio_register_callback(P5_5, gpio_interrupt_handler, NULL);
+    cyhal_gpio_register_callback(EVENT_PIN, &gpio_event_callback);
 
-    cyhal_gpio_enable_event(P5_5, CYHAL_GPIO_IRQ_RISE,
+    cyhal_gpio_enable_event(EVENT_PIN, CYHAL_GPIO_IRQ_RISE,
                             GPIO_INTERRUPT_PRIORITY, true);
 
     printf("\r ******************AIROC™ CCM MQTT OTA AND SUBSCRIBE******************\n");

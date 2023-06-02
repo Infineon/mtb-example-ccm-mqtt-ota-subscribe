@@ -6,7 +6,7 @@
  * Related Document: README.md
  *
  ********************************************************************************
- * $ Copyright 2022 Cypress Semiconductor $
+ * $ Copyright 2023 Cypress Semiconductor $
  *******************************************************************************/
 
 #include "stdio.h"

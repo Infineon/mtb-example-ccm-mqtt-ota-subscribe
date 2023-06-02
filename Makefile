@@ -15,6 +15,14 @@
 # Basic Configuration
 ################################################################################
 
+# Type of ModusToolbox Makefile Options include:
+#
+# COMBINED    -- Top Level Makefile usually for single standalone application
+# APPLICATION -- Top Level Makefile usually for multi project application
+# PROJECT     -- Project Makefile under Application
+#
+MTB_TYPE=COMBINED
+
 # Target board/hardware (BSP).
 # To change the target, it is recommended to use the Library manager
 # ('make modlibs' from command line), which will also update Eclipse IDE launch

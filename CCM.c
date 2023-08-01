@@ -26,6 +26,8 @@ uint8_t rx_buf[RX_BUF_SIZE];
 /*baud rate*/
 uint32_t actualbaud;
 
+uint8_t print_disable;
+
 /* UART configuration*/
 const cyhal_uart_cfg_t uart_config =
     {
@@ -91,7 +93,8 @@ void uart_init()
  *******************************************************************************/
 void at_command_send(char *str)
 {
-    printf("\rSending %s \n", str);
+    if (!print_disable)
+        printf("\rSending %s \n", str);
 
     size_t length = strlen(str);
 
@@ -131,12 +134,13 @@ char *at_command_response_receive(uint32_t delay)
 
         global_command_response[resp_char_count++] = read_data;
 
-        printf("%c", read_data);
+        if (!print_disable)
+            printf("%c", read_data);
 
         /*The below if statement breaks out of while loop
          * once you get the response for AT commands */
 
-        if (read_data == '\n' && (!cyhal_uart_readable(&uart_obj)))
+        if (read_data == '\n')
         {
             printf("\r");
             break;
@@ -179,18 +183,22 @@ uint8_t is_wifi_connected()
 
     char *wifi_status = NULL;
 
+    print_disable = 1;
+
     at_command_send("AT+DIAG PING 8.8.8.8\n");
 
     wifi_status = at_command_response_receive(WIFI_CONNECT_RESPONSE_DELAY);
 
     if (!strcmp(wifi_status, "OK Not connected to AP\r\n"))
     {
+        print_disable = 0;
         return 0;
     }
 
     /* Compare 10 characters */
     else if (!strncmp(wifi_status, "OK Received ping", NUMBER_OF_CHARACTERS))
     {
+        print_disable = 0;
         return 1;
     }
 
@@ -215,6 +223,8 @@ uint8_t is_aws_connected()
 
     char *aws_status = NULL;
 
+    print_disable = 1;
+
     /* UART API for sending data to CCM*/
     at_command_send("AT+CONNECT?\n");
 
@@ -222,21 +232,25 @@ uint8_t is_aws_connected()
 
     if (!strcmp(aws_status, "OK 1 1 CONNECTED CUSTOMER\r\n"))
     {
+        print_disable = 0;
         return 1;
     }
 
     else if (!strcmp(aws_status, "OK 0 1 DISCONNECTED CUSTOMER\r\n"))
     {
+        print_disable = 0;
         return 0;
     }
 
     else if (!strcmp(aws_status, "OK 0 0 DISCONNECTED STAGING\r\n"))
     {
+        print_disable = 0;
         return 0;
     }
 
     else if (!strcmp(aws_status, "OK 1 0 CONNECTED STAGING\r\n"))
     {
+        print_disable = 0;
         return 0;
     }
 
@@ -296,6 +310,16 @@ char *at_command_send_receive(char *str, int delay, int *result, char *desired_r
 
     local_response = at_command_response_receive(delay);
 
+    if (!strncmp(local_response, "ERR14 2 UNABLE TO CONNECT\r\n", NUMBER_OF_CHARACTERS))
+    {
+        printf("\n\rCHECK YOUR Wi-Fi CREDENTIALS\n\r");
+    }
+
+    if (!strncmp(local_response, "ERR14 5 UNABLE TO CONNECT MQTT device authentication failure\r\n", NUMBER_OF_CHARACTERS))
+    {
+        printf("\n\rCHECK YOUR ENDPOINT,THINGNAME AND DEVICE CERTIFICATE IN YOUR AWS ACCOUNT \n\r");
+    }
+
     if (desired_response)
     {
         if (!strcmp(desired_response, local_response))
@@ -312,7 +336,7 @@ char *at_command_send_receive(char *str, int delay, int *result, char *desired_r
 
     else
     {
-        *result = 0;
+        *result = 1;
     }
 
     return local_response;

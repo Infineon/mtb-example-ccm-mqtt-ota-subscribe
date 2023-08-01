@@ -25,11 +25,8 @@
 /*define AWS_FLOW macro as 1 for choosing AWS flow and 0 for Cirrent flow*/
 #define AWS_FLOW (1)
 
-/*Max response delay in milliseconds for AT+CONNECT command*/
-#define MAX_CONNECT_DELAY (120000)
-
 /* Max response delay in milliseconds for AT commands*/
-#define RESPONSE_DELAY (5000)
+#define RESPONSE_DELAY (120000)
 
 #define GPIO_INTERRUPT_PRIORITY (7u)
 
@@ -38,6 +35,8 @@
 
 /* CCM evaluation kits event pin is connected to P5_5*/
 #define EVENT_PIN P5_5
+
+#define POLLING_DELAY (60000)
 
 /* Set SSID, Passphrase and Endpoint as follows
  * AT+CONF SSID=XXXX\n; where XXXX is the required SSID
@@ -66,7 +65,7 @@ static void empty_event_queue(void);
 
 /*******************************************************************************
  * Function Name: main
- ********************************************************************************
+ *******************************************************************************
  * Summary:
  *  System entrance point. This function
  *  - performs initial setup of device
@@ -110,12 +109,6 @@ int main()
     if (!is_aws_connected())
     {
 
-        /*AT command for getting device name*/
-        at_command_send_receive("AT+CONF? ThingName\n", RESPONSE_DELAY, &result, NULL);
-
-        /*AT command for getting device certificate*/
-        at_command_send_receive("AT+CONF? Certificate pem\n", RESPONSE_DELAY, &result, NULL);
-
         /*AT command for sending Device Endpoint*/
         at_command_send_receive(SET_ENDPOINT, RESPONSE_DELAY, &result, NULL);
 
@@ -126,7 +119,7 @@ int main()
         }
 
         /*AT command for Connecting to AWS Cloud*/
-        at_command_send_receive("AT+CONNECT\n", MAX_CONNECT_DELAY, &result, "OK 1 CONNECTED\r\n");
+        at_command_send_receive("AT+CONNECT\n", RESPONSE_DELAY, &result, "OK 1 CONNECTED\r\n");
 
         if (result != SUCCESS)
         {
@@ -147,7 +140,7 @@ int main()
         }
 
         /*AT command for Connecting CCM device to AWS staging*/
-        at_command_send_receive("AT+CONNECT\n", MAX_CONNECT_DELAY, &result, NULL);
+        at_command_send_receive("AT+CONNECT\n", RESPONSE_DELAY, &result, NULL);
 
         /*AT command for Getting Endpoint from Cirrent Cloud*/
         at_command_send_receive("AT+CLOUD_SYNC\n", RESPONSE_DELAY, &result, NULL);
@@ -157,7 +150,8 @@ int main()
 
         delay_ms(MAX_CONNECT_DELAY);
 
-        while (!is_aws_connected());
+        while (!is_aws_connected())
+            ;
     }
 
 #endif
@@ -179,6 +173,7 @@ int main()
             /* New message available in the subscribed topic event*/
             if (!strcmp("OK 1 1 MSG\r\n", response))
             {
+                printf("\nNew message notification on the subscribed topic\n\n\r");
                 /*AT command to receive the message from the subscribed topic */
                 at_command_send_receive("AT+GET1\n", RESPONSE_DELAY, &result, NULL);
             }
@@ -186,6 +181,7 @@ int main()
             /*OTA event*/
             else if (!strcmp("OK 5 1 OTA\r\n", response))
             {
+                printf("\nNew OTA firmware available notificaiton\n\n\r");
                 /*Download the firmware*/
                 at_command_send_receive("AT+OTA ACCEPT\n", RESPONSE_DELAY, &result, NULL);
             }
@@ -193,6 +189,7 @@ int main()
             /*Event denoting that the downloaded OTA firmware is Verified */
             else if (!strcmp("OK 5 4 OTA\r\n", response))
             {
+                printf("\nThe new OTA firmware image verified notification\n\n\r");
                 /*Apply the new firmware*/
                 at_command_send_receive("AT+OTA APPLY\n", RESPONSE_DELAY, &result, NULL);
             }
@@ -200,6 +197,7 @@ int main()
             /* Boot up event*/
             else if (!strcmp("OK 2 0 STARTUP\r\n", response))
             {
+                printf("\nStart up event notification\n\n\r");
                 /*Host software reset*/
                 NVIC_SystemReset();
             }
@@ -207,12 +205,11 @@ int main()
             gpio_intr_flag = false;
         }
     }
-    
 }
 
 /*******************************************************************************
  * Function Name: wifionboarding
- ********************************************************************************
+ *******************************************************************************
  * Summary: Send AT commands to set SSID and Passphrase for CCM module.
  *                                  or
  *          Send AT command to enter Onboarding mode and connect to Wi-Fi via Cirrent APP
@@ -227,11 +224,14 @@ static void wifionboarding()
 #if CIRRENT_APP_ONBOARDING
 
     /* AT command to enter Wi-Fi onboarding mode*/
-    at_command_send_receive("AT+CONFMODE\n", RESPONSE_DELAY, &result, NULL, 0);
+    at_command_send_receive("AT+CONFMODE\n", RESPONSE_DELAY, &result, NULL);
 
     printf("\n\rOpen Cirrent APP on your mobile device and choose your Wi-Fi SSID. \n\rThe program continues after successfully connecting to Wi-Fi SSID.\n\r");
 
-    while (!is_wifi_connected());
+    while (!is_wifi_connected())
+    {
+        delay_ms(POLLING_DELAY);
+    }
 
 #else
 
@@ -251,6 +251,7 @@ static void gpio_interrupt_handler(void *handler_arg, cyhal_gpio_event_t event)
 
 static void empty_event_queue()
 {
+    int result = 0;
     /* AT command for checking the events queued in CCM module*/
     while (!result)
     {
